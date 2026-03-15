@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Clarity Dashboard</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons (Lucide) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js & PapaParse -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+
+    <div class="app-container">
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i data-lucide="bar-chart-2"></i>
+                </div>
+                <div>
+                    <h1>LeadAnalytics</h1>
+                    <span class="version">Clear View Mode</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <p class="nav-label">MAIN SECTIONS</p>
+                <button class="nav-item active" data-target="overview">
+                    <i data-lucide="layout-dashboard"></i> 1. Executive Overview
+                </button>
+                <button class="nav-item" data-target="funnel">
+                    <i data-lucide="filter"></i> 2. Funnel View
+                </button>
+                <button class="nav-item" data-target="trends">
+                    <i data-lucide="trending-up"></i> 3. Time Trends
+                </button>
+                <button class="nav-item" data-target="sources">
+                    <i data-lucide="share-2"></i> 4. Flow by Source
+                </button>
+                <button class="nav-item" data-target="geography">
+                    <i data-lucide="map"></i> 5. Heatmap (States)
+                </button>
+                <button class="nav-item" data-target="deepdive">
+                    <i data-lucide="target"></i> 6. Hot & Submitted
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="dataset-info">
+                    <i data-lucide="check-circle" style="color: #10b981;"></i>
+                    <div>
+                        <p class="dataset-name">Data is Ready</p>
+                        <p class="dataset-status" id="dbStatus">Loading...</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+            <!-- TOP HEADER -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h2 class="section-title" id="activeSectionTitle">Executive Overview</h2>
+                    <p class="section-subtitle" id="activeSectionDesc">A clear, high-level summary of your lead pipeline.</p>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-outline" id="toggleFiltersBtn">
+                        <i data-lucide="sliders-horizontal"></i> Open Data Filters <span id="activeFiltersBadge" class="badge hidden">0</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- SLIDE DOWN FILTER PANEL -->
+            <div class="filter-panel" id="filterPanel">
+                <div class="filter-panel-header">
+                    <div>
+                        <h3>Filter Your Data</h3>
+                        <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Adjust these settings to narrow down the leads you are analyzing across all charts.</p>
+                    </div>
+                    <button class="btn-icon" id="closeFiltersBtn"><i data-lucide="x"></i></button>
+                </div>
+                
+                <div class="filter-grid">
+                    <div class="filter-group span-full">
+                        <label>Filter by Lead Stage:</label>
+                        <div class="chip-group" id="stageFilterGroup">
+                            <button class="chip active" data-val="ALL">All Stages</button>
+                            <button class="chip active" data-val="NOT REACHABLE">Not Reachable</button>
+                            <button class="chip active" data-val="CLOSED">Closed</button>
+                            <button class="chip active" data-val="COLD">Cold</button>
+                            <button class="chip active" data-val="HOT">Hot</button>
+                            <button class="chip active" data-val="WARM">Warm</button>
+                            <button class="chip active" data-val="SUBMITTED">Submitted</button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>State Filter:</label>
+                        <select id="stateFilter" class="form-select">
+                            <option value="ALL">Show All States</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Source Filter:</label>
+                        <select id="sourceFilter" class="form-select">
+                            <option value="ALL">Show All Sources</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Month Filter:</label>
+                        <select id="monthFilter" class="form-select">
+                            <option value="ALL">Show All Months</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group date-range-group">
+                        <label>Exact Date Range:</label>
+                        <div class="date-inputs">
+                            <input type="date" id="dateFrom" class="form-input">
+                            <span>to</span>
+                            <input type="date" id="dateTo" class="form-input">
+                        </div>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-ghost" id="resetFiltersBtn">Reset Filters</button>
+                    <button class="btn btn-primary" id="applyFiltersBtn">Apply Filters Now</button>
+                </div>
+            </div>
+
+            <!-- SECTIONS CONTAINER -->
+            <div class="sections-container">
+                
+                <!-- 1. OVERVIEW -->
+                <section class="dashboard-section active" id="sec-overview">
+                    <div class="welcome-box glass-panel mb-40">
+                        <h2>Welcome to your Dashboard</h2>
+                        <p>This screen gives you the "big picture." The blocks below (KPIs) show exactly how many leads are in each stage of your CRM. Use the menu on the left to dig deeper into specific areas like trends over time or geography.</p>
+                    </div>
+
+                    <h3 class="section-divider-title">Key Performance Indicators (Totals)</h3>
+                    
+                    <!-- Spacious 3-column KPI Grid -->
+                    <div class="kpi-grid-large">
+                        <div class="kpi-card glass-panel kpi-total">
+                            <div class="kpi-header">
+                                <span>1. Total Leads In System</span>
+                                <i data-lucide="users" class="icon-total"></i>
+                            </div>
+                            <h3 class="kpi-value" id="kpi-total">--</h3>
+                            <div class="kpi-progress-bar"><div class="fill" style="width: 100%; background: var(--c-primary);"></div></div>
+                        </div>
+
+                        <div class="kpi-card glass-panel">
+                            <div class="kpi-header">
+                                <span>2. Not Reachable</span>
+                                <i data-lucide="phone-off" class="icon-nr"></i>
+                            </div>
+                            <h3 class="kpi-value" id="kpi-nr">--</h3>
+                            <p class="kpi-sub" id="kpi-nr-sub">0% of total</p>
+                            <div class="kpi-progress-bar"><div class="fill" id="pb-nr" style="background: var(--c-nr);"></div></div>
+                        </div>
+
+                        <div class="kpi-card glass-panel">
+                            <div class="kpi-header">
+                                <span>3. Closed</span>
+                                <i data-lucide="lock" class="icon-closed"></i>
+                            </div>
+                            <h3 class="kpi-value" id="kpi-closed">--</h3>
+                            <p class="kpi-sub" id="kpi-closed-sub">0% of total</p>
+                            <div class="kpi-progress-bar"><div class="fill" id="pb-closed" style="background: var(--c-closed);"></div></div>
+                        </div>
+
+                        <div class="kpi-card glass-panel">
+                            <div class="kpi-header">
+                                <span>4. Cold Leads</span>
+                                <i data-lucide="snowflake" class="icon-cold"></i>
+                            </div>
+                            <h3 class="kpi-value" id="kpi-cold">--</h3>
+                            <p class="kpi-sub" id="kpi-cold-sub">0% of total</p>
+                            <div class="kpi-progress-bar"><div class="fill" id="pb-cold" style="background: var(--c-cold);"></div></div>
+                        </div>
+
+                        <div class="kpi-card glass-panel">
+                            <div class="kpi-header">
+                                <span>5. Hot + Warm Leads</span>
+                                <i data-lucide="flame" class="icon-hot"></i>
+                            </div>
+                            <h3 class="kpi-value" id="kpi-hotwarm">--</h3>
+                            <p class="kpi-sub" id="kpi-hotwarm-sub">Hot: 0 | Warm: 0</p>
+                            <div class="kpi-progress-bar"><div class="fill" id="pb-hotwarm" style="background: linear-gradient(90deg, var(--c-hot), var(--c-warm));"></div></div>
+                        </div>
+
+                        <div class="kpi-card glass-panel">
+                            <div class="kpi-header">
+                                <span>6. Submitted Applications</span>
+                                <i data-lucide="check-circle" class="icon-sub"></i>
+                            </div>
+                            <h3 class="kpi-value" id="kpi-sub">--</h3>
+                            <p class="kpi-sub" id="kpi-sub-sub">0% of total</p>
+                            <div class="kpi-progress-bar"><div class="fill" id="pb-sub" style="background: var(--c-sub);"></div></div>
+                        </div>
+                    </div>
+
+                    <h3 class="section-divider-title mt-40">Proportional Breakdown</h3>
+                    <!-- Full width large donut chart so it's not cramped -->
+                    <div class="chart-card glass-panel" style="max-width: 800px; margin: 0 auto;">
+                        <div class="card-header">
+                            <h3>How is your data distributed?</h3>
+                            <p>This circle chart (donut) simply shows the slices of each stage so you can visually see what portion is taking up your pipeline.</p>
+                        </div>
+                        <div class="canvas-container center-content relative h-400">
+                            <canvas id="chart-donut"></canvas>
+                            <div class="donut-center-text" id="donut-center-total">
+                                <span class="lbl">Total Leads</span>
+                                <span class="val">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. FUNNEL -->
+                <section class="dashboard-section" id="sec-funnel">
+                    <div class="welcome-box glass-panel mb-40">
+                        <h2>Pipeline Funnel</h2>
+                        <p>A funnel shows the sequential drop-off of leads. As you read from top to bottom, you see how the massive initial "Total" group narrows down through Not Reachable, Cold, Warm, Hot, and finally Closed.</p>
+                    </div>
+
+                    <div class="chart-card glass-panel">
+                        <div class="card-header">
+                            <h3>The Conversion Funnel</h3>
+                            <p>Visualizing the volume of leads passing through each major stage.</p>
+                        </div>
+                        <div class="canvas-container h-500">
+                            <canvas id="chart-funnel-main"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. TRENDS -->
+                <section class="dashboard-section" id="sec-trends">
+                    <div class="welcome-box glass-panel mb-40">
+                        <h2>Time-based Analysis</h2>
+                        <p>These two charts show you <strong>when</strong> leads entered the system. The first is grouped by Month, the second is grouped by Week.</p>
+                    </div>
+
+                    <div class="chart-card glass-panel mb-40">
+                        <div class="card-header">
+                            <h3>Monthly Stage Trends</h3>
+                            <p>How many leads were generated in Nov 2025 vs Dec vs Jan vs Feb? Each colored line represents a different stage.</p>
+                        </div>
+                        <div class="canvas-container h-400">
+                            <canvas id="chart-monthly"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card glass-panel">
+                        <div class="card-header">
+                            <h3>Weekly Velocity (Last 8 Weeks)</h3>
+                            <p>A closer look at recent weeks. Notice the highlighted red section covering the massive peak from Jan 12th to Jan 18th.</p>
+                        </div>
+                        <div class="canvas-container h-400">
+                            <canvas id="chart-weekly"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. SOURCES -->
+                <section class="dashboard-section" id="sec-sources">
+                    <div class="welcome-box glass-panel mb-40">
+                        <h2>Top Acquisition Sources</h2>
+                        <p>Where are these leads coming from? This chart looks at your top 6 campaigns (like KollegeApply and Facebook) and breaks their leads down by stage. <strong>The purple line shows the percentage of leads from that source that actually "Closed".</strong></p>
+                    </div>
+
+                    <div class="chart-card glass-panel">
+                        <div class="card-header">
+                            <h3>Source-to-Stage Matrix & Conversion</h3>
+                        </div>
+                        <div class="canvas-container h-500">
+                            <canvas id="chart-sources"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. GEOGRAPHY -->
+                <section class="dashboard-section" id="sec-geography">
+                    <div class="welcome-box glass-panel mb-40">
+                        <h2>Geography Heatmap</h2>
+                        <p>This table lists your absolute top referring states. Instead of just numbers, it highlights the cells so you immediately know which state has the highest volume for a specific stage. Darker colors = more leads.</p>
+                    </div>
+
+                    <div class="chart-card glass-panel">
+                        <div class="card-header">
+                            <h3>State × Stage Volume Heatmap</h3>
+                        </div>
+                        <div class="table-responsive mt-4">
+                            <table class="heatmap-table" id="heatmap-table">
+                                <thead>
+                                    <tr id="heatmap-head"></tr>
+                                </thead>
+                                <tbody id="heatmap-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. DEEP DIVE -->
+                <section class="dashboard-section" id="sec-deepdive">
+                    <div class="welcome-box glass-panel mb-40">
+                        <h2>Quality Deep Dive: Hot & Submitted</h2>
+                        <p>We've extracted just the most valuable stages — "Hot" and "Submitted" — to show exactly what sources and states produce them.</p>
+                    </div>
+
+                    <h3 class="section-divider-title">1. Analyzing HOT Leads</h3>
+                    <div class="grid-2 gap-40 mb-40">
+                        <div class="chart-card glass-panel border-hot">
+                            <div class="card-header">
+                                <h3 style="color: var(--c-hot);"><i data-lucide="flame" class="title-icon"></i> Hot Leads by Source</h3>
+                                <p>Top 6 campaigns producing hot prospects.</p>
+                            </div>
+                            <div class="canvas-container h-350">
+                                <canvas id="chart-hot-source"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card glass-panel border-hot">
+                            <div class="card-header">
+                                <h3 style="color: var(--c-hot);"><i data-lucide="map-pin" class="title-icon"></i> Hot Leads by State</h3>
+                                <p>Top 6 states where hot prospects reside.</p>
+                            </div>
+                            <div class="canvas-container h-350">
+                                <canvas id="chart-hot-state"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="section-divider-title">2. Analyzing SUBMITTED Leads</h3>
+                    <div class="grid-2 gap-40">
+                        <div class="chart-card glass-panel border-sub">
+                            <div class="card-header">
+                                <h3 style="color: var(--c-sub);"><i data-lucide="check-circle" class="title-icon"></i> Submitted by Source</h3>
+                                <p>Top 6 campaigns that lead to submissions.</p>
+                            </div>
+                            <div class="canvas-container h-350">
+                                <canvas id="chart-sub-source"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card glass-panel border-sub">
+                            <div class="card-header">
+                                <h3 style="color: var(--c-sub);"><i data-lucide="map-pin" class="title-icon"></i> Submitted by State</h3>
+                                <p>Top 6 states for submitted applications.</p>
+                            </div>
+                            <div class="canvas-container h-350">
+                                <canvas id="chart-sub-state"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loader-content glass-panel">
+            <div class="spinner"></div>
+            <h2 class="mt-4">Loading Data Securely...</h2>
+            <p id="loaderMessage">Parsing massive CRM CSV files directly in your browser.</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

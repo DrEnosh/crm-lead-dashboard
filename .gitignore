@@ -1,1 +1,5 @@
 .vercel
+
+# Logs and deploy output
+*.log
+vercel_out.txt

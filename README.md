@@ -2,7 +2,7 @@
 
 A browser dashboard for exploring a CRM export of leads: how many there are, where they came from, and how they move through the pipeline. No build step and no dependencies.
 
-![Dashboard walkthrough](dashboard_recording.mp4)
+A short screen recording is in [dashboard_recording.mp4](dashboard_recording.mp4).
 
 ## What it shows
 
